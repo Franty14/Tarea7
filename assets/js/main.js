@@ -210,3 +210,96 @@
   });
 
 })()
+
+let latitude, longitude;
+const apiKey = "80a7d8348ad98411c007756283a97677"; // Your OpenWeatherMap API Key
+
+$(document).ready(function () {
+  // API Key and URL definitions
+
+  const propiedadesUrl = "https://si0sgs.github.io/EstateAgency/datos/propiedades.json";
+
+  // Load property data
+  $.getJSON(propiedadesUrl, function (data) {
+    if (data && data.propiedades && data.propiedades.length > 0) {
+      data.propiedades.forEach(function (propiedad) {
+        let propiedadHTML = `
+          <div class="col-md-4">
+            <div class="card-box-a card-shadow">
+              <div class="img-box-a">
+                <img src="${propiedad.imagen}" alt="${propiedad.clasificacion}" class="img-a img-fluid">
+              </div>
+              <div class="card-overlay">
+                <div class="card-overlay-a-content">
+                  <div class="card-header-a">
+                    <h2 class="card-title-a"><a href="#">${propiedad.clasificacion}</a></h2>
+                    <p class="link-a">${propiedad.descripcion}</p>
+                  </div>
+                  <div class="card-body-a">
+                    <div class="price-box d-flex">
+                      <span class="price-a">${propiedad.tipo} | $${propiedad.precio.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div class="card-footer-a">
+                    <ul class="card-info d-flex justify-content-around">
+                      <li><h4 class="card-info-title">Area</h4><span>${propiedad.detalle.area}m<sup>2</sup></span></li>
+                      <li><h4 class="card-info-title">Rooms</h4><span>${propiedad.detalle.rooms}</span></li>
+                      <li><h4 class="card-info-title">Floors</h4><span>${propiedad.detalle.floors}</span></li>
+                      <li><h4 class="card-info-title">Garages</h4><span>${propiedad.detalle.garages}</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        $("#datosPropiedades").append(propiedadHTML);
+      });
+    } else {
+      $("#datosPropiedades").append("<p>No hay propiedades disponibles.</p>");
+    }
+  }).fail(function () {
+    $("#datosPropiedades").append("<p>Error al cargar los datos de propiedades.</p>");
+  });
+
+  // Obtener geolocalización
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      latitude = position.coords.latitude;
+      longitude = position.coords.longitude;
+      fetchWeatherData(latitude, longitude); // Llama a la función para obtener el clima
+    });
+  } else {
+    alert("La geolocalización no es soportada por este navegador.");
+  }
+
+  // Función para consumir el API de OpenWeatherMap
+  function fetchWeatherData(lat, lon) {
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=es`;
+
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Error en la respuesta del servidor");
+        }
+        return response.json();
+      })
+      .then(data => {
+        displayWeatherData(data); // Muestra la información del clima
+      })
+      .catch(error => console.error("Error al obtener los datos:", error));
+  }
+
+  // Función para mostrar los datos en la tabla HTML
+  function displayWeatherData(data) {
+    document.getElementById("lug").textContent = data.name;
+    document.getElementById("tem").textContent = data.main.temp + " °C";
+    document.getElementById("hum").textContent = data.main.humidity + " %";
+    document.getElementById("vie").textContent = data.wind.speed + " m/s";
+    document.getElementById("tiempoIcon").src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+  }
+
+  // Recargar datos de clima al hacer clic en la tabla
+  document.getElementById("climaTabla").addEventListener("click", () => {
+    fetchWeatherData(latitude, longitude); // Usa las variables públicas latitude y longitude
+  });
+});
